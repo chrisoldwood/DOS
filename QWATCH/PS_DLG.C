@@ -54,6 +54,14 @@ void PrintServerDlg(NWOBJ_ID lServer, PPRINTQUEUE Queue)
      /* Get the servers index. */
      iIndex = GetPSIndexByObjID(lServer);
      
+     /* Validate. */
+     if (iIndex < 0)
+     {
+          /* Display error. */
+          NWGFXInfoMessage("Unrecognised print server");
+          return;
+     }
+     
      /* Save the Queue globally. */
      pQueue = Queue;
      
@@ -142,6 +150,61 @@ NWGBOOL PrintServerDlgProc(NWGMSG wMsg, NWGNUM wCtrl, NWGVARPTR pValue)
 }
 
 /******************************************************************************
+** Convert the status to a string.
+*/
+char * StatusToStr(BYTE uStatus)
+{
+     switch(uStatus)
+     {
+          case NWPS_PSTAT_JOB_WAIT:
+               return "Waiting";
+
+          case NWPS_PSTAT_FORM_WAIT:
+               return "Waiting";
+
+          case NWPS_PSTAT_PRINTING:
+               return "Printing";
+
+          case NWPS_PSTAT_PAUSED:
+               return "Paused";
+
+          case NWPS_PSTAT_STOPPED:
+               return "Stopped";
+
+          case NWPS_PSTAT_MARK_EJECT:
+               return "Mark Eject";
+
+          case NWPS_PSTAT_READY_TO_DOWN:
+               return "Downing";
+
+          case NWPS_PSTAT_NOT_CONNECTED:
+               return "NOT CONNECTED";
+     }
+     
+     return "Unknown problem";
+}
+
+/******************************************************************************
+** Convert the trouble code to a string.
+*/
+char * TroubleToStr(BYTE uProblem)
+{
+     switch(uProblem)
+     {
+          case NWPS_PRINTER_RUNNING:
+               return "Printing";
+
+          case NWPS_PRINTER_OFFLINE:
+               return "OFFLINE";
+
+          case NWPS_PRINTER_PAPER_OUT:
+               return "NO PAPER";
+     }
+     
+     return "Unknown problem";
+}
+
+/******************************************************************************
 ** Update the info about the print server and printer.
 */
 void UpdatePSInfo(void)
@@ -202,7 +265,10 @@ void UpdatePSInfo(void)
           if (bActive)
           {
                /* Show status. */
-               strcpy(Status, "Active");
+               if (uProbCode)
+                    strcpy(Status, TroubleToStr(uProbCode));
+               else
+                    strcpy(Status, StatusToStr(uStatus));
 
                /* Set dialog style. */
                ServerDlg.fFlags = DF_STATIC | DF_TIMER;
@@ -260,7 +326,10 @@ void UpdatePSInfo(void)
           else /* Not active. */
           {
                /* Show status. */
-               strcpy(Status, "InActive");
+               if (uProbCode)
+                    strcpy(Status, TroubleToStr(uProbCode));
+               else
+                    strcpy(Status, StatusToStr(uStatus));
 
                /* Set dialog style. */
                ServerDlg.fFlags = DF_STATIC | DF_TIMER;

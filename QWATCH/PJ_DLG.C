@@ -20,7 +20,7 @@
 #include "pj_dlg.h"
 #include "helpids.h"
 
-#define JOBINFO_UPDATE   3              /* Timeout for update. */
+#define JOBINFO_UPDATE   2              /* Timeout for update. */
 
 /**** Global Vars. ***********************************************************/
 static PRINTJOB    Job;                 /* The currently displayed job. */
@@ -91,6 +91,11 @@ void PrintJobDlg(PPRINTQUEUE Queue, PPRINTJOB pCurrJob)
      
      /* Hide wait message. */
      NWGFXWaitMessage(FALSE);
+
+     /* Make controls activatable as default. */
+     PJControls[JOBFORM].iType   = DCTL_MENU;
+     PJControls[JOBSTATUS].iType = DCTL_MENU;
+     PJControls[JOBPOS].iType    = DCTL_MENU;
 
      /* Get the jobs details for display. */
      GetJobDlgInfo();
@@ -412,9 +417,6 @@ void UpdateJobInfo(void)
 {
      NWCCODE   wRetVal;            /* Return code. */
      
-     /* Show wait message. */
-     NWGFXWaitMessage(TRUE);
-
      /* Get job info. */
      wRetVal = NWReadQueueJobEntry2(pQueue->ConnID, pQueue->QueueID, Job.Info.jobNumber, 
                                         (NWQueueJobStruct NWFAR *) &Job.Info);
@@ -447,7 +449,4 @@ void UpdateJobInfo(void)
           /* Convert for dialog display. */
           GetJobDlgInfo();
      }
-          
-     /* Hide wait message. */
-     NWGFXWaitMessage(FALSE);
 }

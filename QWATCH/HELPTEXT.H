@@ -8,7 +8,7 @@
 
 /* Program strings. */
 #define APPNAME     "Q-WATCHER"
-#define APPTITLE    "NetWare Print Queue Monitor v1.2"
+#define APPTITLE    "NetWare Print Queue Monitor v1.3"
 #define COPYRIGHT   "(C) Chris Wood 1994/95"
 
 /* Help for the server selection menu. */
