@@ -1,0 +1,97 @@
+#==============================================================================
+# (C) Chris Wood 1995.
+#
+# Makefile for the NetWare graphics library.
+# 
+# This makefile is designed for the Borland C make & compiler.
+#
+# This builds a DEBUG build by default, use:-
+# make NONDEBUG=TRUE for an optimised build without debug info.
+# make OPTDEBUG=TRUE for an optimised build with debug info.
+#==============================================================================
+
+#
+# The target.
+#
+TARGET=nwgfx
+All: $(TARGET).lib
+
+#
+# The target components and their dependencies.
+#
+OBJFILES=nwginit.obj nwgcore.obj nwgframe.obj nwgkeybd.obj nwghelp.obj\
+         nwgmbox.obj nwgmenu.obj nwgdlg.obj nwgdebug.obj
+
+nwginit.obj:  nwginit.c nwgtypes.h nwgpriv.h nwghelp.h nwgmenu.h nwgstyle.h\
+              nwgcodes.h nwgerr.h nwgproto.h
+nwgcore.obj:  nwgcore.c nwgtypes.h nwgpriv.h nwgstyle.h nwgcodes.h nwgproto.h
+nwgframe.obj: nwgframe.c nwgframe.h nwgtypes.h nwgstyle.h nwgcodes.h nwgproto.h
+nwgkeybd.obj: nwgkeybd.c nwgtypes.h nwgmenu.h  nwgcodes.h nwgproto.h
+nwghelp.obj:  nwghelp.c nwgtypes.h nwghelp.h nwgstyle.h nwgcodes.h nwgproto.h
+nwgmbox.obj:  nwgmbox.c nwgtypes.h nwgstyle.h nwgcodes.h nwgproto.h
+nwgmenu.obj:  nwgmenu.c nwgtypes.h nwgmenu.h nwgstyle.h nwgcodes.h nwgproto.h
+nwgdlg.obj:   nwgdlg.c nwgtypes.h nwgdlg.h nwgstyle.h nwgcodes.h nwgmenu.h nwgproto.h
+nwgdebug.obj: nwgdebug.c nwgtypes.h nwgproto.h
+
+#
+# Set up basic compiler directives.
+# -c      :- Compile only.
+# -mm     :- Use Medium memory model.
+# -w      :- Display warnings   
+# -a-     :- Pack data structures to byte boundries.
+#
+CC=bcc
+RM=del
+MLIB=tlib
+CCFLAGS=-c -mm -w -a-
+
+#
+# Set up build dependent directives.
+# -Od     :- No optimisation.
+# -Ox -G  :- Maximum optimisation.
+# -v      :- Include debugging code.
+#
+!if $d(NONDEBUG)
+# Optimised build without debug info.
+DBFLAGS=-DNONDEBUG -Ox -G
+
+!elif $d(OPTDEBUG)
+# Optimised build with debug info.
+DBFLAGS=-DDEBUG -Ox -G -v
+
+!else
+# Unoptimised build with debug info.
+DBFLAGS=-DDEBUG -Od -v
+
+!endif
+
+#
+# General compilation rule.
+#
+.c.obj:
+     $(CC) $(CCFLAGS) $(DBFLAGS) $. >$&.err
+
+#
+# Library building rule.
+#
+$(TARGET).lib: $(OBJFILES)
+     $(RM) $(TARGET).lib
+     $(MLIB) $(TARGET).lib @&&!
++nwginit.obj &
++nwgcore.obj &
++nwgframe.obj &
++nwgkeybd.obj &
++nwghelp.obj &
++nwgmbox.obj &
++nwgmenu.obj &
++nwgdlg.obj &
++nwgdebug.obj
+!
+
+#
+# Clean up unecessary junk.
+#
+clean:
+     $(RM) *.bak
+     $(RM) *.err
+     $(RM) *.obj
