@@ -1,0 +1,17 @@
+;
+; Path for outgoing mail.
+;
+
+MailPath=ADMIN/SYS:\HOME\CWOOD\MAILTOSS\
+
+;
+; Organisation.
+;
+
+Organisation=GST Technology Ltd.
+
+; 
+; Domain name.
+;
+
+Domain=gst-soft.demon.co.uk
