@@ -144,7 +144,7 @@ nwcalls.lib +
 nwpsrv.lib +
 nwnet.lib +
 nwlocale.lib +
-lnwipxspx.lib
+lnwipxsp.lib
 ;
 <
 
