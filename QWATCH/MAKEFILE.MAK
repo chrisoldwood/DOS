@@ -20,21 +20,27 @@ TARGET=qwatch
 # The target components.
 #
 OBJFILES=qwatch.obj nwerrs.obj fs_menu.obj pq_menu.obj pj_menu.obj pj_dlg.obj \
-fileserv.obj prntserv.obj prtqueue.obj printjob.obj
+ps_menu.obj ps_dlg.obj fileserv.obj prntserv.obj prtqueue.obj printjob.obj \
+prtforms.obj
 
 #
 # The components' dependencies.
 #
-qwatch.obj:   qwatch.c helptext.h nwerrs.h fileserv.h prntserv.h
+qwatch.obj:   qwatch.c  fileserv.h prtqueue.h printjob.h prntserv.h helptext.h nwerrs.h 
 nwerrs.obj:   nwerrs.c
-fs_menu.obj:  fs_menu.c fileserv.h
-pq_menu.obj:  pq_menu.c fileserv.h prtqueue.h printjob.h
-pj_menu.obj:  pj_menu.c fileserv.h prtqueue.h printjob.h nwerrs.h
-pj_dlg.obj:   pj_dlg.c fileserv.h prtqueue.h printjob.h nwerrs.h pj_dlg.h
+
+fs_menu.obj:  fs_menu.c fileserv.h helpids.h
+pq_menu.obj:  pq_menu.c fileserv.h prtqueue.h printjob.h helpids.h
+pj_menu.obj:  pj_menu.c fileserv.h prtqueue.h printjob.h nwerrs.h helpids.h
+pj_dlg.obj:   pj_dlg.c  fileserv.h prtqueue.h printjob.h nwerrs.h pj_dlg.h helpids.h
+ps_menu.obj:  ps_menu.c fileserv.h prtqueue.h printjob.h nwerrs.h helpids.h
+ps_dlg.obj:   ps_dlg.c  ps_dlg.h
+
 fileserv.obj: fileserv.c fileserv.h
 prntserv.obj: prntserv.c prntserv.h fileserv.h
 prtqueue.obj: prtqueue.c prtqueue.h printjob.h prntserv.h
 printjob.obj: printjob.c printjob.h prtqueue.h prntserv.h
+prtforms.obj: prtforms.c prtforms.h prtqueue.h printjob.h prntserv.h
 
 #
 # The NetWare libraries.
@@ -65,7 +71,7 @@ THISLIB=.
 # Set up basic compiler directives.
 # -c      :- Compile only.
 # -nologo :- Don't display MS logo.
-# -AM     :- Use Medium memory model.
+# -AM/L   :- Use Medium/Large memory model.
 # -W4     :- Warning level 4 (all errors).
 # -Zp     :- Pack data structures to byte boundries.
 # -DNWDOS :- Set #define NWDOS for NetWare DOS compile.
@@ -73,7 +79,7 @@ THISLIB=.
 CC=cl
 LD=link
 RM=del
-CCFLAGS=-c -nologo -AM -W4 -Zp -DNWDOS
+CCFLAGS=-c -nologo -AL -W4 -Zp -DNWDOS
 
 #
 # Set up build dependent directives.
@@ -96,7 +102,7 @@ LDFLAGS=/nologo /noi /stack:0x4000 /onerror:noexe
 %else
 %if %defined(OPTDEBUG)
 # Optimised build with debug info.
-DBFLAGS=-DNONDEBUG -Gs -Ox
+DBFLAGS=-DDEBUG -Gs -Ox
 LDFLAGS=/nologo /noi /stack:0x4000 /onerror:noexe
 
 %else
@@ -124,14 +130,21 @@ fs_menu.obj +
 pq_menu.obj +
 pj_menu.obj +
 pj_dlg.obj +
+ps_menu.obj +
+ps_dlg.obj +
 fileserv.obj +
 prntserv.obj +
 prtqueue.obj +
-printjob.obj
+printjob.obj +
+prtforms.obj
 qwatch.exe
 qwatch.map /m
-..\nwgfxlib\nwgfx.lib +
-nwcalls.lib
+nwgfx.lib +
+nwcalls.lib +
+nwpsrv.lib +
+nwnet.lib +
+nwlocale.lib +
+lnwipxspx.lib
 ;
 <
 

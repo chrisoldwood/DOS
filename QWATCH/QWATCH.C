@@ -12,6 +12,8 @@
 #include <nwgfx.h>
 #include "helptext.h"
 #include "fileserv.h"
+#include "printjob.h"
+#include "prtqueue.h"
 #include "prntserv.h"
 #include "nwerrs.h"
 

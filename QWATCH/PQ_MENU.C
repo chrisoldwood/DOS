@@ -12,6 +12,7 @@
 #include "fileserv.h"
 #include "printjob.h"
 #include "prtqueue.h"
+#include "helpids.h"
 
 #define QUEUE_UPDATE     5         /* Seconds between queue updates. */
 
@@ -130,12 +131,13 @@ void PrintQueueMenu(int iSelection)
      Queues.fnMenuProc = (NWGMENUPROC) PrintQueueMenuProc;
      Queues.iNumItems  = iNumQueues; 
      Queues.pItems     = QItems;    
+     Queues.iCurrent   = 0;    
+     Queues.iHelpID    = IDH_QUEUES;    
 
      /* Hide wait message. */
      NWGFXWaitMessage(FALSE);
 
      /* Display queue monitor popup. */
-     NWGFXSetHelpSection(1);
      NWGFXPopupMenu(&Queues);
      
      /* Free menu items/print queue list memory. */
@@ -162,9 +164,6 @@ NWGNUM PrintQueueMenuProc(NWGMSG wMsg, NWGNUM wSelected, NWGMENUITEMS pItems)
                /* Display the list of jobs in the queue. */
                PrintJobsMenu(&QList[wSelected-1]);
                
-               /* Restore help to this menu. */
-               NWGFXSetHelpSection(1);
-
                /* Show wait message. */
                NWGFXWaitMessage(TRUE);
 

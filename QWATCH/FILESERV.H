@@ -24,3 +24,5 @@ int GetNumFSConnections(void);
 NWCCODE GetFSConnections(void);
 NWCONN_HANDLE GetFSConnHandle(int iServer);
 char * GetFSName(int iServer);
+int GetFSMaxNameLen(void);
+char * GetFSNameByConnID(NWCONN_HANDLE hConnID);

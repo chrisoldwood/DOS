@@ -7,14 +7,13 @@
 */
 
 #include <nwcalls.h>
+#include <string.h>
 #include "fileserv.h"
 
 /**** Global Vars. ***********************************************************/
 static FILESERVER Servers[MAX_FILE_SERVERS];    
                                         /* File servers we are connected to. */
 static NWNUMBER wNumServers;            /* Number of file servers we are connected to. */
-
-/**** Function Prototypes. ***************************************************/
 
 /******************************************************************************
 ** Get a list of the file servers we are connected to. This should be called
@@ -78,4 +77,45 @@ NWCONN_HANDLE GetFSConnHandle(int iServer)
 char * GetFSName(int iServer)
 {
      return Servers[iServer].Name;
+}
+
+/******************************************************************************
+** Get the longest server name.
+*/
+int GetFSMaxNameLen(void)
+{
+     int iLen, iMax=0;        /* Current, Max name length. */
+     int iLoop;               /* Server counter. */
+     
+     /* Go through the list. */
+     for (iLoop=0; iLoop < (int) wNumServers; iLoop++)
+     {
+          /* Find current name length. */
+          iLen = strlen(Servers[iLoop].Name);
+          
+          /* Largest? */
+          if (iLen > iMax)
+               iMax = iLen;
+     }
+
+     return iMax;
+}
+
+/******************************************************************************
+** Get the server name by connection handle.
+*/
+char * GetFSNameByConnID(NWCONN_HANDLE hConnID)
+{
+     int iLoop;               /* Server counter. */
+     
+     /* Go through the list. */
+     for (iLoop=0; iLoop < (int) wNumServers; iLoop++)
+     {
+          /* Found it? */
+          if (Servers[iLoop].ConnID == hConnID)
+               return Servers[iLoop].Name;
+     }
+
+     /* Safe? */
+     return "Unknown";
 }

@@ -10,15 +10,13 @@
 #include <string.h>
 #include <nwcalls.h>
 #include "nwerrs.h"
-#include "prntserv.h"
 #include "printjob.h"
 #include "prtqueue.h"
+#include "prntserv.h"
 
 /**** Global Vars. ***********************************************************/
 static NWOBJ_ID QServers[MAX_PRINT_SERVERS];
                                         /* List of servers servicing queue. */
-
-/**** Function Prototypes. ***************************************************/
 
 /******************************************************************************
 ** Get the number of print queues on a given server.

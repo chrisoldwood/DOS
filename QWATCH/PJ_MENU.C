@@ -13,8 +13,9 @@
 #include "printjob.h"
 #include "prtqueue.h"
 #include "nwerrs.h"
+#include "helpids.h"
 
-#define JOBS_UPDATE     5          /* Seconds between jobs update. */
+#define JOBS_UPDATE     3          /* Seconds between jobs update. */
 
 /**** Global Vars. ***********************************************************/
 static NWGMENU      Jobs;          /* The menu. */
@@ -94,12 +95,13 @@ void PrintJobsMenu(PPRINTQUEUE Queue)
      Jobs.fnMenuProc = (NWGMENUPROC) PrintJobsMenuProc;
      Jobs.iNumItems  = Queue->iNumJobs; 
      Jobs.pItems     = JobItems;    
+     Jobs.iCurrent   = 0;    
+     Jobs.iHelpID    = IDH_JOBLIST;    
 
      /* Hide wait message. */
      NWGFXWaitMessage(FALSE);
 
      /* Display job list popup. */
-     NWGFXSetHelpSection(2);
      NWGFXPopupMenu(&Jobs);
      
      /* Free menu items memory. */
@@ -213,9 +215,6 @@ NWGNUM PrintJobsMenuProc(NWGMSG wMsg, NWGNUM wSelected, NWGMENUITEMS pItems)
                
                /* Force an update. */
                UpdatePrintJobs();
-
-               /* Restore help to this menu. */
-               NWGFXSetHelpSection(2);
                return TRUE;
 
           /* Delete jobs from the queue. */
@@ -226,9 +225,9 @@ NWGNUM PrintJobsMenuProc(NWGMSG wMsg, NWGNUM wSelected, NWGMENUITEMS pItems)
                     
                /* Get confirmation. */
                if (!wSelected)
-                    bDelete = NWGFXQueryMenu("Delete All Marked Jobs? ");
+                    bDelete = NWGFXQueryMenu("Delete All Marked Jobs? ", FALSE);
                else
-                    bDelete = NWGFXQueryMenu("Delete Selected Job?");
+                    bDelete = NWGFXQueryMenu("Delete Selected Job?", FALSE);
                
                /* Okay? */
                if (!bDelete)

@@ -18,6 +18,7 @@ typedef struct tagPrintServer {
      NWCONN_HANDLE  ConnID;                  /* File server connection ID. */
      WORD           SPXConnID;               /* The SPX connection ID. */
      char           Name[MAX_PSNAME_LEN+1];  /* The servers' name. */
+     char           MenuName[50];            /* The menu string. */
 } PRINTSERVER, *PPRINTSERVER, *PS_LIST;      /* Aliases. */
 
 /**** Prototypes *************************************************************/ 
@@ -27,3 +28,9 @@ NWCONN_HANDLE GetPSConnHandle(int iServer);
 WORD GetPSSPXConn(int iServer);
 char * GetPSName(int iServer);
 char * GetPSNameByObjID(NWOBJ_ID ID);
+int GetPSIndexByObjID(NWOBJ_ID ObjectID);
+char * GetPSNameAndHost(int iServer);
+NWOBJ_ID GetPSObjID(int iServer);
+NWCCODE PSConnect(int iServer);
+void PSDisconnect(int iServer);
+int GetQueuesPrinter(int iServer, PPRINTQUEUE pQueue);

@@ -10,6 +10,7 @@
 #include <nwcalls.h>
 #include <nwgfx.h>
 #include "fileserv.h"
+#include "helpids.h"
 
 /**** Global Vars. ***********************************************************/
 extern NWGDIM  wDispWidth;         /* The display width in chars. */
@@ -26,6 +27,7 @@ extern PrintQueueMenu(int);
 void FileServerMenu(void)
 {
      int            iNumConns, iLoop;        /* Number of file server connections. */
+     int            iMaxNameLen;             /* Max file server name length. */
      NWGMENU        ServSelect;              /* The menu. */
      NWGMENUITEMS   ServList;                /* Menu items list. */
 
@@ -46,7 +48,13 @@ void FileServerMenu(void)
      
      /* Fill in menu details. */
      ServSelect.iPosType   = MP_CENTRED;  
-     ServSelect.iSX        = 24;
+
+     /* Calculate menu width (adjust for borders). */
+     iMaxNameLen = GetFSMaxNameLen() + 4;
+     if (iMaxNameLen > 18)
+          ServSelect.iSX = iMaxNameLen;
+     else
+          ServSelect.iSX = 18;
 
      /* Calculate menu height to fit all entries if possible. */
      if (iNumConns > wDispHeight-10)
@@ -60,9 +68,10 @@ void FileServerMenu(void)
      ServSelect.fnMenuProc = (NWGMENUPROC) FileServerMenuProc;
      ServSelect.iNumItems  = iNumConns + 1; 
      ServSelect.pItems     = ServList;    
+     ServSelect.iCurrent   = 0;    
+     ServSelect.iHelpID    = IDH_FILESERVER;    
 
      /* Show Select Queues popup. */
-     NWGFXSetHelpSection(0);
      NWGFXPopupMenu(&ServSelect);
 
      /* Free menu list memory. */
@@ -81,9 +90,6 @@ NWGNUM FileServerMenuProc(NWGMSG wMsg, NWGNUM wSelected, NWGMENUITEMS pItems)
           case MENU_SELECT:
                /* Display print queues. */
                PrintQueueMenu(wSelected);
-
-               /* Restore help to this menu. */
-               NWGFXSetHelpSection(0);
                break;
 
           /* User wishes to cancel menu. */

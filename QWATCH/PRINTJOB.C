@@ -11,14 +11,12 @@
 #include <malloc.h>
 #include <nwcalls.h>
 #include <nwgfx.h>
-#include "prntserv.h"
 #include "printjob.h"
 #include "prtqueue.h"
+#include "prntserv.h"
 
 /**** Global Vars. ***********************************************************/
 static QueueJobListReply JobList;            /* List of jobs in queue. */
-
-/**** Function Prototypes. ***************************************************/
 
 /******************************************************************************
 ** Get a list of jobs for the given queue.
@@ -226,15 +224,15 @@ void GetPJInfo(PPRINTQUEUE Queue)
                /* Job is being added to the queue. */
                Status = "Adding";
           }
-          else if (Job->Info.jobControlFlags & 0x40) 
-          {
-               /* Job is on user-hold. */
-               Status = "U-Hold";
-          }
           else if (Job->Info.jobControlFlags & 0x80)
           {
                /* Job is on operator-hold. */
                Status = "O-Hold";
+          }
+          else if (Job->Info.jobControlFlags & 0x40) 
+          {
+               /* Job is on user-hold. */
+               Status = "U-Hold";
           }
           else if (Job->Info.servicingServerID)
           {

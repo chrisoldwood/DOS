@@ -8,6 +8,9 @@
 
 #include <string.h>
 #include <nwcalls.h>
+#include <nwpsrv.h>
+#include "printjob.h"
+#include "prtqueue.h"
 #include "prntserv.h"
 #include "fileserv.h"
 
@@ -15,8 +18,6 @@
 static PRINTSERVER Servers[MAX_PRINT_SERVERS];    
                                         /* Print servers we are connected to. */
 static NWNUMBER wNumServers;            /* Number of print servers we found. */
-
-/**** Function Prototypes. ***************************************************/
 
 /******************************************************************************
 ** Get a list of all the print servers on all the file servers. This is used
@@ -124,4 +125,113 @@ char * GetPSNameByObjID(NWOBJ_ID ObjectID)
 
      /* On a server we can't access. */
      return "Unknown";
+}
+
+/******************************************************************************
+** Get the index of the print server by Object ID.
+*/
+int GetPSIndexByObjID(NWOBJ_ID ObjectID)
+{
+     int  iLoop;
+     
+     /* Search the whole list. */
+     for (iLoop=0; iLoop < (int) wNumServers; iLoop++)
+     {
+          /* Found it? */
+          if (Servers[iLoop].ObjectID == ObjectID)
+               return iLoop;
+     }
+
+     /* On a server we can't access? */
+     return -1;
+}
+
+/******************************************************************************
+** Create the menu string that consists of the server name and it's file server
+** hosts' name.
+*/
+char * GetPSNameAndHost(int iServer)
+{
+     char FSName[MAX_FSNAME_LEN+1];          /* Temporary file server name. */
+     
+     /* Copy in print server name, and truncate. */
+     strncpy(Servers[iServer].MenuName, Servers[iServer].Name, 25);
+     Servers[iServer].MenuName[24] = '\0';
+     
+     /* Tag on open bracket. */
+     strcat(Servers[iServer].MenuName, " (");
+     
+     /* Get the file server name, truncate and tag on. */
+     strcpy(FSName, GetFSNameByConnID(Servers[iServer].ConnID));
+     FSName[20] = '\0';
+     strcat(Servers[iServer].MenuName, FSName);
+     
+     /* Tag on close bracket. */
+     strcat(Servers[iServer].MenuName, ")");
+
+     return Servers[iServer].MenuName;
+}
+
+/******************************************************************************
+** Get the Object ID of the server by index.
+*/
+NWOBJ_ID GetPSObjID(int iServer)
+{
+     return Servers[iServer].ObjectID;
+}
+
+/******************************************************************************
+** Connect to the print server. This returns if it went okay.
+*/
+NWCCODE PSConnect(int iServer)
+{
+     NWCCODE   wRetVal;       /* NW return code. */
+     BYTE      uAccess;       /* Access level. */
+     
+     /* First attach to the server. */
+     wRetVal = NWPSComAttachToPrintServer(NWPS_BINDERY_SERVICE_PRE_40, 
+                    Servers[iServer].ConnID, 15, Servers[iServer].Name,
+                    (WORD NWFAR *) &Servers[iServer].SPXConnID);
+          
+     /* Check return code. */
+     if (wRetVal)
+          return wRetVal;
+          
+     /* Now login. */
+     wRetVal = NWPSComLoginToPrintServer(NWPS_BINDERY_SERVICE_PRE_40,
+                    Servers[iServer].ConnID, Servers[iServer].SPXConnID,
+                    (BYTE NWFAR *) &uAccess);
+ 
+     return wRetVal;
+ }
+ 
+/******************************************************************************
+** Disconnect from the print server.
+*/
+void PSDisconnect(int iServer)
+{
+     NWPSComDetachFromPrintServer(Servers[iServer].SPXConnID);
+}
+ 
+#define MAX_Q_PRINTERS   10
+
+/******************************************************************************
+** Disconnect from the print server.
+*/
+int GetQueuesPrinter(int iServer, PPRINTQUEUE pQueue)
+{
+     WORD MaxPrinters;                  /* Number of printers servicing queue. */
+     WORD Printers[MAX_Q_PRINTERS];     /* List of printers. */
+     
+     /* Get the list of printers. */
+     NWPSComGetPrintersServicingQ(Servers[iServer].SPXConnID, 
+          (char NWFAR*) GetFSNameByConnID(Servers[iServer].ConnID),
+          (char NWFAR*) pQueue->Name, MAX_Q_PRINTERS, (WORD NWFAR*) &MaxPrinters,
+          (WORD NWFAR*) Printers);
+    
+     /* Only return the first(!). */
+     if (MaxPrinters == 0)
+          return -1;
+     else
+          return (int) Printers[0];
 }

@@ -29,7 +29,7 @@ char * ErrToString(NWCCODE wErrCode)
                return "No queue server";
 
           case ERR_NO_Q_RIGHTS:
-               return "No access rights";
+               return "Insufficient rights";
                
           case ERR_Q_FULL:
                return "Queue full";
@@ -38,7 +38,7 @@ char * ErrToString(NWCCODE wErrCode)
                return "No queue job";
 
           case ERR_NO_Q_JOB_RIGHTS:
-               return "No job rights";
+               return "Insufficient rights";
 
           case ERR_Q_IN_SERVICE:
                return "Queue in service";
@@ -51,7 +51,7 @@ char * ErrToString(NWCCODE wErrCode)
                
           default:
                /* Convert error code to string. */
-               sprintf(szErrorString, "Unknown Error: %X", wErrCode);
+               sprintf(szErrorString, "Unknown Error: 0x%04X", wErrCode);
                return szErrorString;
      }
 }

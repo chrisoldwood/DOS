@@ -15,10 +15,12 @@
 #include "printjob.h"
 #include "prtqueue.h"
 #include "prntserv.h"
+#include "prtforms.h"
 #include "nwerrs.h"
 #include "pj_dlg.h"
+#include "helpids.h"
 
-#define JOBINFO_UPDATE   5              /* Timeout for update. */
+#define JOBINFO_UPDATE   3              /* Timeout for update. */
 
 /**** Global Vars. ***********************************************************/
 static PRINTJOB    Job;                 /* The currently displayed job. */
@@ -42,52 +44,90 @@ NWGBOOL PrintJobDlgProc(NWGMSG wMsg, NWGNUM wCtrl, NWGVARPTR pValue);
 void GetJobDlgInfo(void);
 void UpdateJobInfo(void);
 
+extern NWGDIM  wDispHeight;                       /* The display height in chars. */
+extern NWGMENUITEM FormItems[MAX_PRINT_FORMS];    /* Form names for menu. */
+extern NWOBJ_ID PrintServerMenu(PPRINTQUEUE);
+extern VOID PrintServerDlg(NWOBJ_ID, PPRINTQUEUE);
+
 /******************************************************************************
 ** Display info about the selected print job.
 */
 void PrintJobDlg(PPRINTQUEUE Queue, PPRINTJOB pCurrJob)
 {
+     int iNumForms;      /* Number of forms on server. */
+     int iMaxNameLen;    /* Max form name length. */
+     
      /* Save pointer to queue. */
      pQueue = Queue;
      
      /* Copy job details into global. */
      memcpy(&Job, pCurrJob, sizeof(PRINTJOB));
+
+     /* Show wait message. */
+     NWGFXWaitMessage(TRUE);
+
+     /* Get a list of the supported forms. */
+     GetForms(Queue);
+
+     /* Get total number of forms. */
+     iNumForms = GetNumForms();
+
+     /* Calculate form menu width (adjust for borders). */
+     iMaxNameLen = GetFormMaxNameLen() + 4;
+     if (iMaxNameLen > 12)
+          FormMenu.iSX = iMaxNameLen;
+     else
+          FormMenu.iSX = 12;
+
+     /* Calculate menu height to fit all entries if possible. */
+     if (iNumForms > wDispHeight-10)
+          FormMenu.iSY        = wDispHeight - 10;   
+     else
+          FormMenu.iSY        = iNumForms + 4;   
+    
+     /* Finish off menu details. */
+     FormMenu.iNumItems = iNumForms; 
+     FormMenu.pItems    = FormItems;    
      
+     /* Hide wait message. */
+     NWGFXWaitMessage(FALSE);
+
      /* Get the jobs details for display. */
      GetJobDlgInfo();
      
      /* Set dialog job strings. */
      PJControls[JOBUSER].pValue   = UserName;
-     PJControls[JOBTITLE].pValue  = (NWGSTR) Job.Info.jobDescription;
+     PJControls[JOBTITLE].pValue  = Job.Info.jobDescription;
      PJControls[JOBFORM].pValue   = JobForm;
      PJControls[JOBSIZE].pValue   = JobSize;
-     PJControls[JOBSTATUS].pValue = Status;
      PJControls[JOBSERVER].pValue = ServerName;
      PJControls[JOBTARGET].pValue = TargetServ;
      PJControls[JOBPOS].pValue    = JobPosition;
      PJControls[JOBNUMBER].pValue = JobNumber;
      PJControls[JOBDATE].pValue   = JobDate;
      PJControls[JOBTIME].pValue   = JobTime;
-     
+
      /* Fill in the dialog details. */
      JobDlg.iPosType  = DP_CENTRED;
      JobDlg.iSX       = 64;
      JobDlg.iSY       = 15;
 
-     /* Check job state for dialog border. */
-     if (Job.Info.servicingServerID)
-          JobDlg.fFlags = DF_STATIC | DF_TIMER;   
-     else
-          JobDlg.fFlags = DF_BASIC | DF_TIMER;   
-
+     /* FIll in the rest of the dialog structure. */
+     JobDlg.fFlags    = DF_TIMER;   
      JobDlg.pTitle    = "Job Information";
      JobDlg.tTimeOut  = JOBINFO_UPDATE;
      JobDlg.fnDlgProc = PrintJobDlgProc;
      JobDlg.iNumCtls  = PJ_CONTROLS;
      JobDlg.pControls = PJControls;
+     JobDlg.iHelpID   = IDH_JOBINFO;
+
+     /* Check status. */
+     if (Job.Info.servicingServerID)
+          JobDlg.iCurrent  = JOBSERVER + 1;
+     else
+          JobDlg.iCurrent  = JOBFORM + 1;
 
      /* Display the dialog. */
-     NWGFXSetHelpSection(3);
      NWGFXDialog(&JobDlg);
 }
 
@@ -97,14 +137,151 @@ void PrintJobDlg(PPRINTQUEUE Queue, PPRINTJOB pCurrJob)
 NWGBOOL PrintJobDlgProc(NWGMSG wMsg, NWGNUM wCtrl, NWGVARPTR pValue)
 {
      NWGNUM    wValue;                  /* Menu calue. */
+     NWNUM     wNewPos;                 /* New job position. */
+     NWCCODE   wRetVal;                 /* Return code. */
+     NWOBJ_ID  lPrintServer;            /* Print server to connect to. */
      
      /* Decode dialog message. */
      switch(wMsg)
      {
-          /* Verify entry. */
-          case DIALOG_SELECT:
+          /* Check for change. */
+          case DIALOG_CTL_DONE:
+               /* Check which control. */
+               if (wCtrl == JOBSTATUS)
+               {
+                    /* Get choice. */
+                    wValue = (NWGNUM)(long) pValue;
+                    
+                    /* Get menu value. */
+                    switch(wValue)
+                    {
+                         /* Ready. */
+                         case 1:
+                              /* Clear any holds. */
+                              Job.Info.jobControlFlags = Job.Info.jobControlFlags 
+                                                            & (~(0x0040 | 0x0080));
+                              break;
+                         
+                         /* User hold. */
+                         case 2:
+                              /* Set user hold bit. */
+                              Job.Info.jobControlFlags |= 0x0040;
+                              break;
+
+                         /* Operator hold. */
+                         case 3:
+                              /* Set operator hold bit. */
+                              Job.Info.jobControlFlags |= 0x0080;
+                              break;
+
+                         /* Safe. */
+                         default:
+                              break;
+                    }
+                    
+                    /* Update job entry. */
+                    wRetVal = NWChangeQueueJobEntry2(pQueue->ConnID, pQueue->QueueID, &Job.Info);
+
+                    /* Check for error. */
+                    if (wRetVal)
+                    {
+                         /* Notify user. */
+                         NWGFXInfoMessage(ErrToString(wRetVal));
+                    }
+                    else
+                    {
+                         /* Force an update. */
+                         UpdateJobInfo();
+                    
+                         /* Re-draw dialog. */
+                         return TRUE;
+                    }
+               }
+               else if (wCtrl == JOBPOS)
+               {
+                    /* Get choice. */
+                    wValue = (NWGNUM)(long) pValue;
+                    
+                    /* Move job to top? */
+                    if (wValue == 1)
+                         wNewPos = 1;
+                    else /* bottom. */
+                         wNewPos  = 250;
+                         
+                    /* Change jobs' position. */
+                    wRetVal = NWChangeQueueJobPosition2(pQueue->ConnID, pQueue->QueueID, 
+                                   Job.Info.jobNumber, wNewPos);
+                    
+                    /* Check for error. */
+                    if (wRetVal)
+                    {
+                         /* Notify user. */
+                         NWGFXInfoMessage(ErrToString(wRetVal));
+                    }
+                    else
+                    {
+                         /* Force an update. */
+                         UpdateJobInfo();
+                    
+                         /* Re-draw dialog. */
+                         return TRUE;
+                    }
+               }
+               else if (wCtrl == JOBFORM)
+               {
+                    /* Get choice. */
+                    wValue = (NWGNUM)(long) pValue;
+                    
+                    /* Get new form type. */
+                    Job.Info.jobType = ( GetFormNumber(wValue-1) << 8);
+                    
+                    /* Update job entry. */
+                    wRetVal = NWChangeQueueJobEntry2(pQueue->ConnID, pQueue->QueueID, &Job.Info);
+
+                    /* Check for error. */
+                    if (wRetVal)
+                    {
+                         /* Notify user. */
+                         NWGFXInfoMessage(ErrToString(wRetVal));
+                    }
+                    else
+                    {
+                         /* Force an update. */
+                         UpdateJobInfo();
+                    
+                         /* Re-draw dialog. */
+                         return TRUE;
+                    }
+               }
                break;
                
+          /* Show custom control. */
+          case DIALOG_CTL_EXEC:
+               if (wCtrl == JOBSERVER)
+               {
+                    /* Check for active job. */
+                    if (Job.Info.servicingServerID)
+                    {
+                         /* Show dialog for the servicing server. */
+                         lPrintServer = Job.Info.servicingServerID;
+                    }
+                    else /* (none). */
+                    {
+                         /* Get server from menu. */
+                         lPrintServer = PrintServerMenu(pQueue);
+                         if (!lPrintServer)
+                              return FALSE;
+                    }
+
+                    /* Display print server dialog. */
+                    PrintServerDlg(lPrintServer, pQueue);
+
+                    /* Force an update. */
+                    UpdateJobInfo();
+                    return TRUE;
+               }
+               break;
+
           /* Timeout... */
           case DIALOG_TIMEOUT:
                /* Time to update. */
@@ -119,7 +296,7 @@ NWGBOOL PrintJobDlgProc(NWGMSG wMsg, NWGNUM wCtrl, NWGVARPTR pValue)
      /* Don't update. */
      return FALSE;
 }
-
+      
 /******************************************************************************
 ** Convert the job details to strings for display in the dialog.
 */
@@ -210,17 +387,22 @@ void GetJobDlgInfo(void)
      sprintf(JobDate, "%d/%d/%d", (int)Time[2], (int)Time[1], (int)Time[0]);
 
      /* Create string from job entry time. */
-     sprintf(JobTime, "%d:%d:%d", (int)Time[3], (int)Time[4], (int)Time[5]);
+     sprintf(JobTime, "%02d:%02d:%02d", (int)Time[3], (int)Time[4], (int)Time[5]);
 
-     /* Set dialog strings that are explicit pointers. */
-     PJControls[JOBTITLE].pValue = (NWGSTR) Job.Info.jobDescription;
+     /* Set dialog job strings. */
      PJControls[JOBSTATUS].pValue = Status;
 
-     /* Check job state for dialog border. */
+     /* Update control settings. */
      if (Job.Info.servicingServerID)
-          JobDlg.fFlags    = DF_STATIC | DF_TIMER;   
-     else
-          JobDlg.fFlags    = DF_BASIC | DF_TIMER;   
+     {
+          /* Make controls inactivatable. */
+          PJControls[JOBFORM].iType   = DCTL_STEXT;
+          PJControls[JOBSTATUS].iType = DCTL_STEXT;
+          PJControls[JOBPOS].iType    = DCTL_STEXT;
+          
+          /* Set activated control to server field. */
+          JobDlg.iCurrent  = JOBSERVER + 1;
+     }
 }
 
 /******************************************************************************
@@ -252,8 +434,9 @@ void UpdateJobInfo(void)
           PJControls[JOBNUMBER].pValue = "";
           PJControls[JOBDATE].pValue   = "";
           PJControls[JOBTIME].pValue   = "";
-          JobDlg.tTimeOut = 0;
-          JobDlg.fFlags   = DF_STATIC;   
+
+          /* Set dialog border. */
+          JobDlg.fFlags = DF_STATIC;   
      }
      else
      {
